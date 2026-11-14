@@ -1,4 +1,4 @@
-package com.zimbra.crm.entity;
+package com.uniminuto.zimbra.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

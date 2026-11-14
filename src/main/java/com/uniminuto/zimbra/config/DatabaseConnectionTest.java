@@ -1,4 +1,4 @@
-package com.uniminuto.clinica.config;
+package com.uniminuto.zimbra.config;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;

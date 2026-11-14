@@ -1,10 +1,10 @@
-package com.uniminuto.clinica;
+package com.uniminuto.zimbra;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ClinicaApplicationTests {
+class ZimbraApplicationTests {
 
 	@Test
 	void contextLoads() {

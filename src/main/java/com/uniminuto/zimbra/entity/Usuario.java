@@ -1,4 +1,4 @@
-package com.zimbra.crm.entity;
+package com.uniminuto.zimbra.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;

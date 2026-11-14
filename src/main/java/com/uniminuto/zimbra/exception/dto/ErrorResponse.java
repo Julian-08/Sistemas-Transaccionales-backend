@@ -1,4 +1,4 @@
-package com.uniminuto.clinica.exception.dto;
+package com.uniminuto.zimbra.exception.dto;
 
 import lombok.Data;
 

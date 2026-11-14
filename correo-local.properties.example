@@ -1,0 +1,17 @@
+# =====================================================================
+# Configuracion local del correo de Zimbra CRM (Gmail)
+#
+# 1. Copia este archivo como "correo-local.properties" en esta misma carpeta.
+# 2. Escribe tu correo de Gmail y una CONTRASENA DE APLICACION
+#    (no tu contrasena normal). Se crea en tu cuenta de Google:
+#    Seguridad > Verificacion en dos pasos (debe estar activa) > Contrasenas de aplicaciones.
+#    Google te da 16 letras; escribelas sin espacios.
+# 3. Reinicia el backend. En la consola debe salir:
+#    "Correo habilitado: se enviaran correos desde ..."
+#
+# correo-local.properties esta en .gitignore: tus credenciales no se suben al repositorio.
+# =====================================================================
+
+zimbra.correo.habilitado=true
+spring.mail.username=tucorreo@gmail.com
+spring.mail.password=xxxxxxxxxxxxxxxx
