@@ -65,7 +65,7 @@ public class EmailServiceImpl implements EmailService {
     @EventListener(ContextRefreshedEvent.class)
     public void revisarConfiguracion() {
         if (!habilitado) {
-            LOG.info("Correo deshabilitado: los códigos de recuperación se muestran en pantalla y en esta consola. "
+            LOG.info("Correo deshabilitado: los códigos de recuperación se consultan en la base (token_recuperacion_hash) y en esta consola. "
                     + "Para enviarlos por correo configure correo-local.properties.");
             return;
         }

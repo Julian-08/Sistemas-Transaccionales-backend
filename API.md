@@ -37,7 +37,7 @@ Ejecutar una vez, en orden, sobre `crm_zimbra`:
 |---|---|---|---|
 | POST | `/auth/login` | público | RF-001, RF-004 |
 | POST | `/auth/registro` | público | registro de cliente |
-| POST | `/auth/recuperar-contrasena` (código de 8 caracteres, 15 min; en dev lo devuelve en `codigo`) | público | RF-003 |
+| POST | `/auth/recuperar-contrasena` (código de 8 caracteres, 15 min; nunca va en la respuesta: llega por correo o, en dev, se lee en `usuarios.token_recuperacion_hash`) | público | RF-003 |
 | POST | `/auth/restablecer-contrasena` (`email`, `codigo`, `nuevaContrasena`) | público | RF-003 |
 | POST | `/auth/cerrar-sesion` | todos | RF-001 |
 | GET | `/auth/menu` · `/auth/sesion` | todos | RF-002 |

@@ -67,8 +67,11 @@ public class AuthServiceImpl implements AuthService {
     private final MenuService menuService;
     private final EmailService emailService;
     private final int minutosRecuperacion;
-    /** Solo en desarrollo: devuelve el codigo en la respuesta para no depender del correo. */
-    private final boolean mostrarCodigo;
+    /**
+     * Solo en desarrollo: guarda el codigo legible en usuarios.token_recuperacion_hash para
+     * consultarlo en la base sin correo. En produccion es false y se guarda su hash SHA-256.
+     */
+    private final boolean codigoVisibleEnBd;
 
     /**
      * Hash BCrypt de relleno: si el correo no existe se compara contra este hash
@@ -87,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
                            MenuService menuService,
                            EmailService emailService,
                            @Value("${zimbra.recuperacion.minutos-vigencia:15}") int minutosRecuperacion,
-                           @Value("${zimbra.recuperacion.mostrar-codigo:false}") boolean mostrarCodigo) {
+                           @Value("${zimbra.recuperacion.codigo-visible-en-bd:false}") boolean codigoVisibleEnBd) {
         this.usuarioRepository = usuarioRepository;
         this.clienteRepository = clienteRepository;
         this.asesorRepository = asesorRepository;
@@ -99,10 +102,10 @@ public class AuthServiceImpl implements AuthService {
         this.menuService = menuService;
         this.emailService = emailService;
         this.minutosRecuperacion = minutosRecuperacion;
-        this.mostrarCodigo = mostrarCodigo;
-        if (mostrarCodigo) {
-            LOG.warn("zimbra.recuperacion.mostrar-codigo=true: el código de recuperación se devuelve en la respuesta. "
-                    + "Úselo solo en desarrollo.");
+        this.codigoVisibleEnBd = codigoVisibleEnBd;
+        if (codigoVisibleEnBd) {
+            LOG.warn("zimbra.recuperacion.codigo-visible-en-bd=true: el código de recuperación se guarda legible en "
+                    + "usuarios.token_recuperacion_hash. Úselo solo en desarrollo.");
         }
         this.hashRelleno = passwordUtil.cifrar(UUID.randomUUID().toString());
     }
@@ -190,8 +193,9 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * Genera un codigo de 8 caracteres que dura {@code zimbra.recuperacion.minutos-vigencia} minutos.
-     * En la base solo se guarda su hash SHA-256 (usuarios.token_recuperacion_hash) y el vencimiento
-     * (usuarios.token_expiracion), con sp_solicitar_recuperacion. Un codigo nuevo reemplaza al anterior.
+     * El codigo nunca viaja en la respuesta: se envia por correo y se guarda en usuarios.token_recuperacion_hash
+     * (hash SHA-256, o legible si codigo-visible-en-bd=true) con su vencimiento en usuarios.token_expiracion,
+     * mediante sp_solicitar_recuperacion. Un codigo nuevo reemplaza al anterior.
      */
     @Override
     public RecuperacionRs solicitarRecuperacion(RecuperarContrasenaRq recuperarRq) {
@@ -199,22 +203,19 @@ public class AuthServiceImpl implements AuthService {
         Optional<Usuario> optUsuario = usuarioRepository.findByEmail(email)
                 .filter(u -> ESTADO_ACTIVO.equals(u.getEstado()));
 
-        if (optUsuario.isEmpty()) {
-            // RF-003 A1: mensaje generico, no revela si la cuenta existe.
-            return new RecuperacionRs(Boolean.TRUE, MENSAJE_RECUPERACION, null, null);
+        if (optUsuario.isPresent()) {
+            Usuario usuario = optUsuario.get();
+            String codigo = generarCodigo();
+            procedimientoRepository.solicitarRecuperacion(email, valorGuardado(codigo), minutosRecuperacion);
+            emailService.enviarCodigoRecuperacion(email, usuario.getNombre(), formatearCodigo(codigo), minutosRecuperacion);
         }
+        // RF-003 A1: la misma respuesta exista o no la cuenta.
+        return new RecuperacionRs(Boolean.TRUE, MENSAJE_RECUPERACION, minutosRecuperacion);
+    }
 
-        Usuario usuario = optUsuario.get();
-        String codigo = generarCodigo();
-        procedimientoRepository.solicitarRecuperacion(email, passwordUtil.hashToken(codigo), minutosRecuperacion);
-        emailService.enviarCodigoRecuperacion(email, usuario.getNombre(), formatearCodigo(codigo), minutosRecuperacion);
-
-        if (mostrarCodigo) {
-            return new RecuperacionRs(Boolean.TRUE,
-                    "Código generado. Úselo antes de " + minutosRecuperacion + " minutos para restablecer la contraseña.",
-                    formatearCodigo(codigo), minutosRecuperacion);
-        }
-        return new RecuperacionRs(Boolean.TRUE, MENSAJE_RECUPERACION, null, minutosRecuperacion);
+    /** Lo que se guarda en token_recuperacion_hash y se compara en sp_restablecer_contrasena. */
+    private String valorGuardado(String codigo) {
+        return codigoVisibleEnBd ? codigo : passwordUtil.hashToken(codigo);
     }
 
     @Override
@@ -227,7 +228,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             procedimientoRepository.restablecerContrasena(
                     idUsuario,
-                    passwordUtil.hashToken(codigo),
+                    valorGuardado(codigo),
                     passwordUtil.cifrar(restablecerRq.getNuevaContrasena()));
         } catch (DataAccessException ex) {
             // sp_restablecer_contrasena habla de "enlace"; aqui se traduce a "codigo".
